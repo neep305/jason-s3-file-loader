@@ -216,6 +216,34 @@ docker compose build --no-cache backend
 # To customize, edit backend/Dockerfile
 ```
 
+## Railway Deployment (Docker)
+
+Railway does not use `docker-compose.yml` directly. Create two services from the same repo.
+
+### Backend Service
+
+1. Create a new Railway service from this repo.
+2. Set **Root Directory** to repo root so it uses `Dockerfile`.
+3. Add environment variables:
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
+   - `AWS_REGION`
+   - `S3_BUCKET_NAME`
+   - `AWS_ENDPOINT_URL_S3` (optional)
+4. Railway injects `PORT` automatically. The backend Dockerfile listens on it.
+
+### Frontend Service
+
+1. Create another Railway service from the same repo.
+2. Set **Root Directory** to `frontend` so it uses `frontend/Dockerfile`.
+3. Set build env var `VITE_API_URL` to your backend service URL (e.g. `https://<backend>.railway.app`).
+4. Railway injects `PORT` automatically. The frontend Dockerfile runs `npm run preview` on it.
+
+### Notes
+
+- If you want backend and frontend in a single service, add a custom Dockerfile that builds and serves both.
+- `VITE_API_URL` is a build-time variable. Update it and trigger a rebuild when the backend URL changes.
+
 ## Troubleshooting
 
 ### Ports Already in Use

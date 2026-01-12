@@ -189,6 +189,29 @@ newgrp docker
 3. **Develop**: Edit code, changes reflect immediately
 4. **Deploy**: Push images to registry when ready
 
+## Railway Deployment (Docker)
+
+Railway does not use `docker-compose.yml` directly. Create two services from the same repo.
+
+### Backend Service
+
+1. Set **Root Directory** to repo root so it uses `Dockerfile`.
+2. Add environment variables:
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
+   - `AWS_REGION`
+   - `S3_BUCKET_NAME`
+   - `AWS_ENDPOINT_URL_S3` (optional)
+3. Railway injects `PORT` automatically; the backend listens on it.
+
+### Frontend Service
+
+1. Set **Root Directory** to `frontend` so it uses `frontend/Dockerfile`.
+2. Set build env var `VITE_API_URL` to your backend URL (e.g. `https://<backend>.railway.app`).
+3. Railway injects `PORT` automatically; the frontend runs `npm run preview` on it.
+
+**Note**: `VITE_API_URL` is a build-time variable. When it changes, trigger a rebuild.
+
 ## More Information
 
 - **DOCKER.md**: Complete Docker guide with advanced options

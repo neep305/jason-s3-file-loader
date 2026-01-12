@@ -296,6 +296,27 @@ StructuredLogger.log_upload_error(request_id, filename, error, retry_count)
 2. Configure security groups for S3 access
 3. Deploy frontend to web server or CDN
 
+### Railway (Docker)
+
+Create two services from the same repo.
+
+**Backend service**
+1. Set **Root Directory** to repo root so it uses `Dockerfile`.
+2. Add environment variables:
+   - `AWS_ACCESS_KEY_ID`
+   - `AWS_SECRET_ACCESS_KEY`
+   - `AWS_REGION`
+   - `S3_BUCKET_NAME`
+   - `AWS_ENDPOINT_URL_S3` (optional)
+3. Railway injects `PORT` automatically; the backend listens on it.
+
+**Frontend service**
+1. Set **Root Directory** to `frontend` so it uses `frontend/Dockerfile`.
+2. Set build env var `VITE_API_URL` to your backend URL (e.g. `https://<backend>.railway.app`).
+3. Railway injects `PORT` automatically; the frontend runs `npm run preview` on it.
+
+**Note**: `VITE_API_URL` is a build-time variable. When it changes, trigger a rebuild.
+
 ### Using LocalStack (Local Testing)
 
 ```bash
