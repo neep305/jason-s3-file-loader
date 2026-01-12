@@ -1,6 +1,8 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Header, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from src.services.s3_uploader import S3Client
 from src.models.upload import UploadResponse
@@ -232,6 +234,23 @@ async def delete_files(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Delete operation failed: {str(e)}")
+
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+index_path = os.path.join(static_dir, "index.html")
+
+if os.path.isdir(static_dir) and os.path.isfile(index_path):
+    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
+
+    @app.get("/")
+    async def serve_root():
+        return FileResponse(index_path)
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        file_path = os.path.join(static_dir, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(index_path)
 
 if __name__ == "__main__":
     import uvicorn
