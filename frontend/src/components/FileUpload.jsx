@@ -109,15 +109,26 @@ export function FileUpload() {
   const loadBuckets = async () => {
     if (!credentialsRegistered) return
     
+    console.log('[loadBuckets] Starting bucket load with credentials:', { 
+      accessKey: awsAccessKey?.substring(0, 8) + '...', 
+      hasSecretKey: !!awsSecretKey 
+    })
+    
     setLoadingBuckets(true)
+    setError(null) // Clear previous errors
     try {
       const response = await getBuckets(awsAccessKey, awsSecretKey)
+      console.log('[loadBuckets] Response received:', response)
       setBuckets(response.buckets || [])
       if (response.buckets?.length > 0) {
+        console.log('[loadBuckets] Found buckets:', response.buckets.length)
         setSelectedBucket(response.buckets[0].name)
         loadBucketObjects(response.buckets[0].name)
+      } else {
+        console.log('[loadBuckets] No buckets found')
       }
     } catch (err) {
+      console.error('[loadBuckets] Error:', err)
       setError(`Failed to load buckets: ${err.message}`)
     } finally {
       setLoadingBuckets(false)
@@ -372,16 +383,23 @@ export function FileUpload() {
         </div>
       )}
 
+      {!credentialsRegistered && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+          <p className="font-medium">⚠️ AWS credentials이 등록되지 않았습니다.</p>
+          <p>위의 AWS Credentials 섹션에서 AWS Access Key와 Secret Access Key를 입력하고 등록 버튼을 클릭해주세요.</p>
+        </div>
+      )}
+
       {/* Bucket Selection */}
-      <div className="mb-6">
+      <div className={`mb-6 ${!credentialsRegistered ? 'opacity-50 pointer-events-none' : ''}`}>
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Select S3 Bucket
         </label>
         <select
           value={selectedBucket}
           onChange={(e) => handleBucketChange(e.target.value)}
-          disabled={loadingBuckets}
-          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          disabled={loadingBuckets || !credentialsRegistered}
+          className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
         >
           {loadingBuckets ? (
             <option>Loading buckets...</option>
@@ -396,10 +414,10 @@ export function FileUpload() {
       </div>
 
       {/* Current Path Navigation */}
-      <div className="mb-4 flex items-center space-x-2">
+      <div className={`mb-4 flex items-center space-x-2 ${!credentialsRegistered ? 'opacity-50 pointer-events-none' : ''}`}>
         <button
           onClick={handleGoBack}
-          disabled={pathHistory.length === 0}
+          disabled={pathHistory.length === 0 || !credentialsRegistered}
           className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
           ← Back
@@ -410,7 +428,7 @@ export function FileUpload() {
       </div>
 
       {/* Bucket Contents */}
-      <div className="mb-6 border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto">
+      <div className={`mb-6 border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto ${!credentialsRegistered ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-gray-700">Contents</h3>
           
@@ -493,7 +511,7 @@ export function FileUpload() {
       </div>
 
       {/* File Upload Form */}
-      <form onSubmit={handleUpload} className="space-y-4">
+      <form onSubmit={handleUpload} className={`space-y-4 ${!credentialsRegistered ? 'opacity-50 pointer-events-none' : ''}`}>
         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:border-gray-400 transition">
           <input
             ref={fileInputRef}

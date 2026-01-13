@@ -1,6 +1,43 @@
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL ??
-  (import.meta.env.DEV ? 'http://localhost:8000' : '')
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+console.log('[API] API_BASE_URL:', API_BASE_URL)
+console.log('[API] Environment:', import.meta.env.MODE)
+
+async function handleResponse(response, defaultMessage) {
+  const contentType = response.headers.get('content-type') || ''
+  const text = await response.text()
+
+  const tryParseJson = (payload) => {
+    try {
+      return JSON.parse(payload)
+    } catch {
+      return null
+    }
+  }
+
+  if (response.ok) {
+    if (!text) return {}
+    if (contentType.includes('application/json')) {
+      const parsed = tryParseJson(text)
+      return parsed ?? { raw: text }
+    }
+    return { raw: text }
+  }
+
+  let errorDetail = defaultMessage
+
+  if (contentType.includes('application/json')) {
+    const parsed = tryParseJson(text)
+    if (parsed) {
+      errorDetail = parsed.detail || parsed.message || JSON.stringify(parsed)
+    }
+  } else if (text) {
+    errorDetail = text
+  }
+
+  const statusText = response.statusText || 'Error'
+  throw new Error(`HTTP ${response.status} ${statusText} - ${errorDetail}`)
+}
 
 export async function uploadFile(file, bucketName, uploadPath, awsAccessKey, awsSecretKey) {
   const formData = new FormData()
@@ -20,13 +57,7 @@ export async function uploadFile(file, bucketName, uploadPath, awsAccessKey, aws
       headers,
       body: formData,
     })
-    
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.detail || 'Upload failed')
-    }
-    
-    return await response.json()
+    return await handleResponse(response, 'Upload failed')
   } catch (error) {
     throw error
   }
@@ -39,11 +70,20 @@ export async function getBuckets(awsAccessKey, awsSecretKey) {
     headers['X-AWS-Secret-Key'] = awsSecretKey
   }
   
+  console.log('[getBuckets] Calling API with URL:', `${API_BASE_URL}/buckets`)
+  console.log('[getBuckets] Headers:', { 
+    hasAccessKey: !!headers['X-AWS-Access-Key'],
+    hasSecretKey: !!headers['X-AWS-Secret-Key']
+  })
+  
   try {
     const response = await fetch(`${API_BASE_URL}/buckets`, { headers })
-    if (!response.ok) throw new Error('Failed to fetch buckets')
-    return await response.json()
+    console.log('[getBuckets] Response status:', response.status, response.statusText)
+    const result = await handleResponse(response, 'Failed to fetch buckets')
+    console.log('[getBuckets] Parsed result:', result)
+    return result
   } catch (error) {
+    console.error('[getBuckets] Error:', error)
     throw error
   }
 }
@@ -60,8 +100,7 @@ export async function getBucketObjects(bucketName, prefix = '', awsAccessKey, aw
     if (prefix) url.searchParams.set('prefix', prefix)
     
     const response = await fetch(url.toString(), { headers })
-    if (!response.ok) throw new Error('Failed to fetch bucket objects')
-    return await response.json()
+    return await handleResponse(response, 'Failed to fetch bucket objects')
   } catch (error) {
     throw error
   }
@@ -70,8 +109,7 @@ export async function getBucketObjects(bucketName, prefix = '', awsAccessKey, aw
 export async function getConfig() {
   try {
     const response = await fetch(`${API_BASE_URL}/config`)
-    if (!response.ok) throw new Error('Failed to fetch config')
-    return await response.json()
+    return await handleResponse(response, 'Failed to fetch config')
   } catch (error) {
     throw error
   }
@@ -91,7 +129,11 @@ export async function downloadFile(bucketName, fileKey, awsAccessKey, awsSecretK
       headers,
       method: 'GET'
     })
-    if (!response.ok) throw new Error('Failed to download file')
+    if (!response.ok) {
+      const text = await response.text().catch(() => '')
+      const message = text || 'Failed to download file'
+      throw new Error(`HTTP ${response.status} ${response.statusText || ''} - ${message}`)
+    }
     return response
   } catch (error) {
     throw error
@@ -113,8 +155,7 @@ export async function deleteFiles(bucketName, fileKeys, awsAccessKey, awsSecretK
       headers,
       body: JSON.stringify(fileKeys)
     })
-    if (!response.ok) throw new Error('Failed to delete files')
-    return await response.json()
+    return await handleResponse(response, 'Failed to delete files')
   } catch (error) {
     throw error
   }

@@ -55,5 +55,7 @@ This is an AWS S3 file loader application designed to upload files to Amazon S3 
 - S3 버킷 내 파일 다중 선택: 
   - 다운로드 기능: 다중 선택 시 "다운로드" 버튼 활성화. 클릭시 설정한 로컬경로에 다운로드 진행. 다운로드시에도 파일별 다운로드 로딩바 활성화.
   - 삭제 기능: S3권한이 있을 경우에만 활성화한다. 다중 선택시 "다운로드" 버튼 옆에 "삭제" 버튼 활성화. 다운로드는 실수하면 안되므로 삭제 클릭시 "삭제를 원하시면 아래 입력창에 delete를 입력 후 확인 버튼을 누르세요"라고 구성하고, '확인', '취소' 버튼을 아래에 보이도록 한다.
+- Firebase Analytics 연동하여 사용자가 어떤 S3버킷에 접속하여 파일업로드, 다운로드, 삭제를 몇 번 했는지 통계 수집
+
 
 Reference key files as they are created (e.g., `src/s3_uploader.py`, `config/settings.py`).

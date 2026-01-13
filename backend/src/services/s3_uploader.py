@@ -1,6 +1,7 @@
 import time
 import boto3
 from botocore.exceptions import ClientError
+from fastapi import HTTPException
 from config import get_settings
 from src.utils.logger import StructuredLogger
 import logging
@@ -62,9 +63,14 @@ class S3Client:
             buckets = [{"name": bucket["Name"], "creation_date": bucket["CreationDate"].isoformat()} 
                       for bucket in response.get("Buckets", [])]
             return buckets
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code", "Unknown")
+            error_msg = e.response.get("Error", {}).get("Message", "Unknown error")
+            logger.error(f"AWS ClientError listing buckets - Code: {error_code}, Message: {error_msg}")
+            raise HTTPException(status_code=401, detail=f"AWS authentication failed: {error_msg}")
         except Exception as e:
-            logger.error(f"Failed to list buckets: {e}")
-            return []
+            logger.error(f"Failed to list buckets: {type(e).__name__}: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Failed to list buckets: {str(e)}")
     
     def list_objects(self, bucket_name: str, prefix: str = "", delimiter: str = "/") -> dict:
         """List objects in a bucket with optional prefix (for folder navigation)"""
